@@ -1,16 +1,23 @@
 ---
 title: "Exploratory data analysis"
-output: 
+output:
   html_notebook:
-    toc: true
-    toc_depth: 2
     css: style.css
+    toc: yes
+    toc_depth: 2
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
 ---
 
 ```{r libraries, message=FALSE, warning=FALSE, include=FALSE}
 # import libraries to be used
 library(tidyverse)
 library(caret)
+library(xts)
+library(forecast)
+library(lubridate)
+library(reshape2)
 ```
 
 ```{r data_import, message=FALSE, warning=FALSE, include=FALSE}
@@ -81,6 +88,83 @@ The data provided already includs some metrics used by talkdesk
 
 
 [link to competition](https://www.kaggle.com/c/kdm-porto-2019/data)
+
+# Exploring data
+
+## Data consistency
+
+```{r consistency, include=FALSE}
+consistency <- data %>% 
+  mutate(numberAgents_NoCalls = round(total_calls_duration/(15*60)),
+         agentsAvailableTime = agent_headcount*15*60,
+         totalUsedTime = available_time + away_time + busy_time + total_handle_time,
+         diff = totalUsedTime - agentsAvailableTime,
+         underlyingTimeRatios = total_handle_time/(utilization_rate/100),
+         interval = as.POSIXct(strptime(interval,"%Y-%m-%d %H:%M:%S"), tz = "UTC")) 
+```
+
+With the above feature definition lets make some consistency checks, mainly focusing on the amount of time available and used. For this a new table was created with the following values:
+
+- *numberAgents_NoCalls*: given the total calls duration in seconds, if all available time was call time, how many agents would be needed. This result does not take into consideration the after call work time (ACW) and is calculating by diving the total_calls_duration by 900 seconds (the number of seconds by each period).
+
+- *agentsAvailableTime*: considering the headcount for each time stamp the expected total available time that can be devoted to each status (taking into consideration that only total_handle_time is actualy time devoted to an event). This is calculated by agent_headcount * 900.
+
+- *totalUsedTime*: sum of all time devolted to status. In theory this should be equal or lower than agentsAvailableTime.
+
+- *diff*: difference between total used time and agents available time
+
+- *underlyingTimeRatios*: considering the ratios given, which is the total number of hours used.
+
+
+```{r agentCount_optimalAgents_plot, echo=FALSE, message=FALSE, warning=FALSE}
+melt(select(consistency, numberAgents_NoCalls,agent_headcount)) %>% 
+  ggplot(aes(x = value, fill = variable)) +
+  geom_density(alpha=0.25) +
+  labs(x = "count", title = "Agent headcount and Optimal number of agents")
+```
+
+By plotting both agent headcount and optimal agent head count density together we notice the existence of extrem values which are definitely outliers. This outliers result from the numberAgents_NoCalls. This is a strange result, lets look at all observations where the expectation surpasses the average headcount.
+
+```{r headcount_outlier, echo=FALSE, message=FALSE, warning=FALSE}
+consistency %>% 
+  filter(numberAgents_NoCalls > max(agent_headcount)) %>% 
+  arrange(desc(numberAgents_NoCalls)) %>% 
+  select(interval, agent_headcount, numberAgents_NoCalls,total_calls,total_calls_duration,total_handle_time,totalUsedTime) %>% 
+  knitr::kable(format.args = list(big.mark = "."))
+```
+
+From the table above some additional assumptions can be made about the business. Although 03-09-2018 clearly seems like an outlier situations when the service received an abnormal high frequency of calls (eg: suppose that the costumer is a comunication company, this could be resulting from a unexpected service shutdown) the total handle time is actual way below the total call duration. In fact during this time most agents where ocupied on busy status. This may by due to a meeting to share information about the situation.
+
+In order for such a difference between the available time and the call duration exits that means that the call process includes some form of automatic reply which picks up before an agent. Given this assumptions, missing calls would represent calls which would be normally directed to an agent but where hanged up before it reaches one. (eg: an option to talk to an agent of a bank service).
+
+**This means, that the number of agents is not only influenced by the number of calls but by their option/probability that they are passed by to an agent.**
+
+![business example](www/business.jpg)
+
+
+```{r echo=FALSE}
+consistency %>% 
+  ggplot(aes(x = agent_headcount)) +
+  geom_density() +
+  geom_vline(aes(xintercept=mean(agent_headcount)),
+            color="blue", linetype="dashed", size=1)
+```
+
+## Single features distributions
+
+
+
+## Converting to time series
+
+```{r}
+# convert to time base
+
+timeSeries_data <- xts(x = data, order.by = as.POSIXct(strptime(data$interval,"%Y-%m-%d %H:%M:%S"), tz = "UTC"))
+timeSeries_data$interval <- NULL
+
+```
+
+
 
 QUESTIONS:
 =================================================
