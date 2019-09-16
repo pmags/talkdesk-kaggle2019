@@ -2,11 +2,10 @@
 *.Rproj
 /.vscode
 /.idea
-
 # just messing around files
 test.py
 t.ipynb
-
+eda_r.pdf
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

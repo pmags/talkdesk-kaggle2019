@@ -1,13 +1,13 @@
 ---
 title: "Exploratory data analysis"
 output:
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
   html_notebook:
     css: style.css
     toc: yes
     toc_depth: 2
-  pdf_document:
-    toc: yes
-    toc_depth: '2'
 ---
 
 ```{r libraries, message=FALSE, warning=FALSE, include=FALSE}
@@ -18,6 +18,7 @@ library(xts)
 library(forecast)
 library(lubridate)
 library(reshape2)
+library(quantmod)
 ```
 
 ```{r data_import, message=FALSE, warning=FALSE, include=FALSE}
@@ -89,9 +90,7 @@ The data provided already includs some metrics used by talkdesk
 
 [link to competition](https://www.kaggle.com/c/kdm-porto-2019/data)
 
-# Exploring data
-
-## Data consistency
+# Data consistency
 
 ```{r consistency, include=FALSE}
 consistency <- data %>% 
@@ -142,27 +141,65 @@ In order for such a difference between the available time and the call duration 
 ![business example](www/business.jpg)
 
 
-```{r echo=FALSE}
+```{r density_headcount, echo=FALSE}
 consistency %>% 
   ggplot(aes(x = agent_headcount)) +
   geom_density() +
   geom_vline(aes(xintercept=mean(agent_headcount)),
-            color="blue", linetype="dashed", size=1)
+            color="blue", linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=median(agent_headcount)),
+            color="red", linetype="dashed", size=1)
+
 ```
 
-## Single features distributions
+Ploting the distribution of agents we notice that it is heavely skwed to the left with higher concentration towards zero. Once again we weren't expecting this results. At best, we would expect it to follow a normal distribution. **This result may signal the existence of seasonality.**
 
+As an example we notice that `r scales::percent(nrow(data %>% filter(agent_headcount == 0))/nrow(data))` of the observations there were no agent available. A possible explanation is **that the call center is not continously open.**
 
+Based on the information given we can safely assume that no "ring time" is included on this database. This means that the timer which was used to measure calls times starts when the call is pickedup either by an agent or an answering machine.
 
-## Converting to time series
+# Single features distributions
 
 ```{r}
+sapply(select(data,-interval),FUN = function(x){sum(is.infinite(x))})
+```
+
+```{r}
+sapply(select(data,-interval),FUN = function(x){sum(is.na(x))})
+```
+
+
+## Agent headcount
+
+This is a time series evenly spaced with no missing data
+
+```{r echo=FALSE}
 # convert to time base
 
-timeSeries_data <- xts(x = data, order.by = as.POSIXct(strptime(data$interval,"%Y-%m-%d %H:%M:%S"), tz = "UTC"))
-timeSeries_data$interval <- NULL
+monthly_headcount <- to.monthly(as.xts(x = data$agent_headcount, order.by = as.POSIXct(strptime(data$interval,"%Y-%m-%d %H:%M:%S"), tz = "UTC")))
+
+chart_Series(monthly_headcount,multi.col=TRUE, TA = NULL)
 
 ```
+
+```{r}
+ep1 <- endpoints(as.xts(x = data$agent_headcount, order.by = as.POSIXct(strptime(data$interval,"%Y-%m-%d %H:%M:%S"), tz = "UTC")),on="days") 
+
+plot(period.apply(as.xts(x = data$agent_headcount, order.by = as.POSIXct(strptime(data$interval,"%Y-%m-%d %H:%M:%S"), tz = "UTC")),on="days",INDEX=ep1,FUN=mean),type = "l", xlab = "Headcount (nº agents)" , main = "Average daily agent headcount")
+```
+
+
+
+```{r echo=FALSE}
+ep2 <- endpoints(as.xts(x = data$agent_headcount, order.by = as.POSIXct(strptime(data$interval,"%Y-%m-%d %H:%M:%S"), tz = "UTC")),on="months") 
+
+plot(period.apply(as.xts(x = data$agent_headcount, order.by = as.POSIXct(strptime(data$interval,"%Y-%m-%d %H:%M:%S"), tz = "UTC")),on="months",INDEX=ep2,FUN=mean),type = "b", xlab = "Headcount (nº agents)" , main = "Average monthly agent headcount")
+
+```
+
+
+
+
 
 
 
