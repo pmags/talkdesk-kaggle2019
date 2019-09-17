@@ -92,3 +92,4 @@ venv.bak/
 .mypy_cache/
 .Rproj.user
 eda.py
+studies.nb.html
