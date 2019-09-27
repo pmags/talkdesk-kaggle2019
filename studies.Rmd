@@ -1,0 +1,339 @@
+---
+title: "Studies"
+output: html_notebook
+---
+
+The logarithmic function log() is a data transformation that can be applied to positively valued time series data. It slightly shrinks observations that are greater than one towards zero, while greatly shrinking very large observations. This property can stabilize variability when a series exhibits increasing variability over time. It may also be used to linearize a rapid growth pattern over time. 
+
+Common types of trends in time series data include persistent growth or decay over time, increasing variability over time, and periodic or seasonal patterns, that is regularly spaced peaks and troughs appearing throughout the data.
+
+For time series exhibiting seasonal trends, seasonal differencing can be applied to remove these periodic patterns. For example, monthly data may exhibit a strong twelve month pattern. In such situations, changes in behavior from year to year may be of more interest than changes from month to month, which may largely follow the overall seasonal pattern.
+
+Differencing a time series can remove a time trend. The function diff() will calculate the first difference or change series. A difference series lets you examine the increments or changes in a given time series. It always has one fewer observations than the original series. 
+
+The function diff(..., lag = s) will calculate the lag s difference or length s seasonal change series. For monthly or quarterly data, an appropriate value of s would be 12 or 4, respectively
+
+The changes or increments of a random walk are equal to white noise (we can use this as a test)
+
+Daily financial asset returns typically share many characteristics. Returns over one day are typically small, and their average is close to zero. At the same time, their variances and standard deviations can be relatively large. Because of these extreme returns, the distribution of daily asset returns is not normal, but heavy-tailed, and sometimes skewed. In general, individual stock returns typically have even greater variability and more extreme observations than index returns. 
+
+If a time series is white noise, it is a sequence of random numbers and cannot be predicted. If the series of forecast errors are not white noise, it suggests improvements could be made to the predictive model.
+
+
+In mathematics and statistics, a stationary process (a.k.a. a strict/strictly stationary process or strong/strongly stationary process) is a stochastic process whose unconditional joint probability distribution does not change when shifted in time.[1] Consequently, parameters such as mean and variance also do not change over time.
+
+Since stationarity is an assumption underlying many statistical procedures used in time series analysis, non-stationary data are often transformed to become stationary. The most common cause of violation of stationarity is a trend in the mean, which can be due either to the presence of a unit root or of a deterministic trend. In the former case of a unit root, stochastic shocks have permanent effects, and the process is not mean-reverting. In the latter case of a deterministic trend, the process is called a trend stationary process, and stochastic shocks have only transitory effects after which the variable tends toward a deterministically evolving (non-constant) mean. 
+
+Sample covariances measure the strength of the linear relationship between matched pairs of variables. The cov() function can be used to calculate covariances for a pair of variables, or a covariance matrix when a matrix containing several variables is given as input.
+
+Correlation is the standardized version of covariance that ranges in value from -1 to 1, where values close to 1 in magnitude indicate a strong linear relationship between pairs of variables. (correlation is just a standardiz version of covariance)
+
+Processes with auto correlation are more predictable than those with none. Autocorrelation is the correlation between an observation and a similiar one in the passa (eg: lag 1 means 1 time period)
+
+Autocorrelation, also known as serial correlation, is the correlation of a signal with a delayed copy of itself as a function of delay. Informally, it is the similarity between observations as a function of the time lag between them. The analysis of autocorrelation is a mathematical tool for finding repeating patterns, such as the presence of a periodic signal obscured by noise, or identifying the missing fundamental frequency in a signal implied by its harmonic frequencies. It is often used in signal processing for analyzing functions or series of values, such as time domain signals.
+
+The first step in any data analysis task is to plot the data. Graphs enable you to visualize many features of the data, including patterns, unusual observations, changes over time, and relationships between variables. Just as the type of data determines which forecasting method to use, it also determines which graphs are appropriate.
+
+You can use the autoplot() function to produce a time plot of the data with or without facets.
+
+Along with time plots, there are other useful ways of plotting data to emphasize seasonal patterns and show changes in these patterns over time.
+
+- A seasonal plot is similar to a time plot except that the data are plotted against the individual “seasons” in which the data were observed. You can create one using the ggseasonplot() function the same way you do with autoplot().
+- An interesting variant of a season plot uses polar coordinates, where the time axis is circular rather than horizontal; to make one, simply add a polar argument and set it to TRUE.
+- A subseries plot comprises mini time plots for each season. Here, the mean for each season is shown as a blue horizontal line.
+
+One way of splitting a time series is by using the window() function, which extracts a subset from the object x observed between the times start and end.
+
+` window(x, start = NULL, end = NULL)`
+
+Another way to look at time series data is to plot each observation against another observation that occurred some time previously by using gglagplot(). For example, you could plot yt against yt−1. This is called a lag plot because you are plotting the time series against lags of itself. When data are either seasonal or cyclic, the ACF will peak around the seasonal lags or at the average cycle length.
+
+
+- The sunspot data are annual, so they cannot be seasonal. The cycles are aperiodic of variable length.
+- The ACF plots show peaks at seasonal lags and at the average cycle length.
+- The ACF plots show positive and decreasing spikes when the series is trended.
+
+
+As you learned in the video, white noise is a term that describes purely random data. You can conduct a Ljung-Box test using the function below to confirm the randomness of a series; a p-value greater than 0.05 suggests that the data are not significantly different from white noise.
+
+`Box.test(pigs, lag = 24, fitdf = 0, type = "Ljung")`
+
+
+
+MODELING IDEAS:
+=================================================
+
+```{r}
+# White noise model
+
+wn <- arima.sim(model = list(order = c(0,0,0)),n = nrow(data), mean = mean(data$agent_headcount), sd = sd(data$agent_headcount))
+
+wn1 <- arima(data$agent_headcount, order = c(0,0,0))
+
+ts.plot(wn)
+```
+
+
+An ARIMA(p, d, q) model has three parts, the autoregressive order p, the order of integration (or differencing) d, and the moving average order q.
+
+The random walk (RW) model is also a basic time series model. It is the cumulative sum (or integration) of a mean zero white noise (WN) series, such that the first difference series of a RW is a WN series. Note for reference that the RW model is an ARIMA(0, 1, 0) model, in which the middle entry of 1 indicates that the model's order of integration is 1. 
+
+A random walk (RW) need not wander about zero, it can have an upward or downward trajectory, i.e., a drift or time trend. This is done by including an intercept in the RW model, which corresponds to the slope of the RW time trend.
+
+**Weak stationary:**mean, variance, covariance constant over time.
+However, only the RW is always non-stationary, both with and without a drift term. 
+
+
+Autocorrelations or lagged correlations are used to assess whether a time series is dependent on its past. For a time series x of length n we consider the n-1 pairs of observations one time unit apart.
+
+**The auto regressive model I**
+
+$$Today = Constant + Slope * Yesterday + Noise$$
+**The auto regressive model II**
+
+
+Mean centered version:
+
+$$(Today - Mean) = Constant + Slope * (Yesterday - Mean) + Noise$$
+$$Y_{t} - \mu = \phi (Y_{t-1} - \mu) + \epsilon_{t} $$
+Where $\epsilon_{t}$ is mean zero white noise. When $\mu = 0$ and slope = 1 then this is a random Walk.
+
+The autoregressive (AR) model is arguably the most widely used time series model. It shares the very familiar interpretation of a simple linear regression, but here each observation is regressed on the previous observation. The AR model also includes the white noise (WN) and random walk (RW) models examined in earlier chapters as special cases. 
+
+Autoregressive processes can exhibit varying levels of persistence as well as anti-persistence or oscillatory behavior. Persistence is defined by a high correlation between an observation and its lag, while anti-persistence is defined by a large amount of variation between an observation and its lag. 
+
+The random walk (RW) model is a special case of the autoregressive (AR) model, in which the slope parameter is equal to 1. Recall from previous chapters that the RW model is not stationary and exhibits very strong persistence. Its sample autocovariance function (ACF) also decays to zero very slowly, meaning past values have a long lasting impact on current values.
+
+Random walk show high persistence and low decay.
+
+**When can use the predict function as any regular R model**
+
+
+Models with autocorrelation can be constructed from white noise.
+
+
+**Simple moving average model**
+
+$$Today = Mean + Noise + Slope * (Yesterday's Noise)$$
+
+$$Y_{t} = \mu + \epsilon_{t} + \phi * \epsilon_{t-1}$$
+The weighted sum of current and previous noise is called a simple moving average process.
+
+The simple moving average (MA) model is a parsimonious time series model used to account for very short-run autocorrelation. It does have a regression like form, but here each observation is regressed on the previous innovation, which is not actually observed. Like the autoregressive (AR) model, the MA model includes the white noise (WN) model as special case. 
+
+To determine model fit, you can measure the Akaike information criterion (AIC) and Bayesian information criterion (BIC) for each model. While the math underlying the AIC and BIC is beyond the scope of this course, for your purposes the main idea is these these indicators penalize models with more estimated parameters, to avoid overfitting, and smaller values are preferred. All factors being equal, a model that produces a lower AIC or BIC than another model is considered a better fit.
+
+One function that can be used to create training and test sets is subset.ts(), which returns a subset of a time series where the optional start and end arguments are specified using index values.
+
+> # x is a numerical vector or time series
+> # To subset observations from 101 to 500
+> train <- subset(x, start = 101, end = 500, ...)
+
+> # To subset the first 500 observations
+> train <- subset(x, end = 500, ...)
+
+Simple exponential smoothing works well when you don't have any trend or seasonality
+
+FORECASTING:
+=================================================
+
+As you learned in the video, a forecast is the mean or median of simulated futures of a time series. The very simplest forecasting method is to use the most recent observation; this is called a naive forecast and can be implemented in a namesake function. This is the best that can be done for many time series including most stock price data, and even if it is not a good forecasting method, it provides a useful benchmark for other forecasting methods. For seasonal data, a related idea is to use the corresponding season from the last year of data. For example, if you want to forecast the sales volume for next March, you would use the sales volume from the previous March. This is implemented in the snaive() function, meaning, seasonal naive.
+
+For both forecasting methods, you can set the second argument h, which specifies the number of values you want to forecast; as shown in the code below, they have different default values. The resulting output is an object of class forecast. This is the core class of objects in the forecast package, and there are many functions for dealing with them including summary() and autoplot().
+
+```{r}
+# naive(y, h = 10)
+# snaive(y, h = 2 * frequency(x))
+```
+
+**RESIDUALS SHOULD LOOK LIKE WHITE NOISE**
+- They should be uncorrelated
+- They should have zero mean
+- They should have constant variance
+- They should be normally distributed
+
+**Where possible, try to find a model that has low RMSE on a test set and has white noise residuals.**
+
+The tsCV() function computes time series cross-validation errors. It requires you to specify the time series, the forecast method, and the forecast horizon. Here is the example used in the video:
+
+> e = tsCV(oil, forecastfunction = naive, h = 1)
+
+**SIMPLE EXPONENTIAL SMOOTHING**
+
+$$\hat{Y}_{t+h|t} = \alpha Y_{t} + (1 - \alpha) l_{t-1}$$
+$$\hat{Y}_{t+h|t} = \alpha Y_{t} + (1 - \alpha) \hat{Y}_{t+h|t-1}$$
+
+```{r}
+# Use ses() to forecast the next 10 years of winning times
+fc <- ses(marathon, h = 10)
+
+# Use summary() to see the model parameters
+summary(fc)
+
+# Use autoplot() to plot the forecasts
+autoplot(fc)
+
+# Add the one-step forecasts for the training data to the plot
+autoplot(fc) + autolayer(fitted(fc))
+```
+
+
+```{r}
+# Function to return ETS forecasts
+fets <- function(y, h) {
+  forecast(ets(y), h = h)
+}
+
+# Apply tsCV() for both methods
+e1 <- tsCV(cement, fets, h = 4)
+e2 <- tsCV(cement, snaive, h = 4)
+
+# Compute MSE of resulting errors (watch out for missing values)
+mean(e1^2, na.rm = TRUE)
+mean(e2^2, na.rm = TRUE)
+
+# Copy the best forecast MSE
+bestmse <- mean(e2^2, na.rm = TRUE)
+```
+
+If the data show increasing variation as the level of the series increases, then a **transformation** can be useful.Differencing is a way of making a time series stationary; this means that you remove any systematic patterns such as trend and seasonality from the data. A white noise series is considered a special case of a stationary time series.
+
+With seasonal data, differences are often taken between observations in the same season of consecutive years, rather than in consecutive periods. For example, with quarterly data, one would take the difference between Q1 in one year and Q1 in the previous year. This is called seasonal differencing.
+
+**ARIMA** stands for Autoregressive Integrated Moving Average Models. The AICc statistic is useful for selecting between models in the same class. For example, you can use it to select an ETS model or to select an ARIMA model. However, you cannot use it to compare ETS and ARIMA models because they are in different model classes.
+
+```{r}
+# Use 20 years of the qcement data beginning in 1988
+train <- window(qcement, start = c(1988,1), end = c(2007,4))
+
+# Fit an ARIMA and an ETS model to the training data
+fit1 <- auto.arima(train)
+fit2 <- ets(train)
+
+# Check that both models have white noise residuals
+checkresiduals(fit1)
+checkresiduals(fit2)
+
+# Produce forecasts for each model
+fc1 <- forecast(fit1, h = 4*(2013-2007)+1)
+fc2 <- forecast(fit2, h = 4*(2013-2007)+1)
+
+# Use accuracy() to find better model based on RMSE
+accuracy(fc1, qcement)
+accuracy(fc2, qcement)
+bettermodel <- fit2
+```
+
+DYNAMIC REGRESSIONS:
+=================================================
+
+Uses more information then just the time series.
+
+example:
+
+```{r}
+auto.arima(uschange[,"Consumption"], xreg  = uschange[,"Income"])
+```
+
+The auto.arima() function will fit a dynamic regression model with ARIMA errors. The only change to how you used it previously is that you will now use the xreg argument containing a matrix of regression variables. Here are some code snippets from the video:
+
+> fit <- auto.arima(uschange[, "Consumption"],
+                    xreg = uschange[, "Income"])
+
+> # rep(x, times)
+> fcast <- forecast(fit, xreg = rep(0.8, 8))
+
+When seasonality exists we can use dynamic harmonic regression.
+
+With **weekly data**, it is difficult to handle seasonality using ETS or ARIMA models as the seasonal length is too large (approximately 52). Instead, you can use harmonic regression which uses sines and cosines to model the seasonality. 
+
+> # fourier(x, K, h = NULL)
+
+> fit <- auto.arima(cafe, xreg = fourier(cafe, K = 6),
+                    seasonal = FALSE, lambda = 0)
+> fit %>%
+    forecast(xreg = fourier(cafe, K = 6, h = 24)) %>%
+    autoplot() + ylim(1.6, 5.1)
+
+**Forecasting call bookings**
+
+Another time series with multiple seasonal periods is calls, which contains 20 consecutive days of 5-minute call volume data for a large North American bank. There are 169 5-minute periods in a working day, and so the weekly seasonal frequency is 5 x 169 = 845. The weekly seasonality is relatively weak, so here you will just model daily seasonality. 
+
+  
+    
+```{r}
+# Set up harmonic regressors of order 13
+harmonics <- fourier(gasoline, K = 13)
+
+# Fit regression model with ARIMA errors
+fit <- auto.arima(gasoline, xreg = harmonics, seasonal = FALSE)
+
+# Forecasts next 3 years
+newharmonics <- fourier(gasoline, K = 13, h = 365/7*3)
+fc <- forecast(fit, xreg = newharmonics)
+
+# Plot forecasts fc
+autoplot(fc)
+```
+
+Harmonic regressions are also useful when time series have multiple seasonal patterns. For example, taylor contains half-hourly electricity demand in England and Wales over a few months in the year 2000. The seasonal periods are 48 (daily seasonality) and 7 x 48 = 336 (weekly seasonality). There is not enough data to consider annual seasonality.
+
+auto.arima() would take a long time to fit a long time series such as this one, so instead you will fit a standard regression model with Fourier terms using the tslm() function. This is very similar to lm() but is designed to handle time series. With multiple seasonality, you need to specify the order K
+for each of the seasonal periods.
+
+
+RELEVANT ANSWER:
+=================================================
+
+```{r}
+# Plot the calls data
+autoplot(calls)
+
+# Set up the xreg matrix
+xreg <- fourier(calls, K = c(10,0))
+
+# Fit a dynamic regression model
+fit <- auto.arima(calls, xreg = xreg, stationary = TRUE, seasonal = FALSE)
+
+# Check the residuals
+checkresiduals(fit)
+
+# Plot forecasts for 10 working days ahead
+fc <- forecast(fit, xreg =  fourier(calls, c(10, 0), h = 10*169))
+autoplot(fc)
+```
+
+
+```{r}
+# using tbats
+
+callsM %>% window(start = 20) %>%  tbats() %>% forecast() %>% autoplot() + xlab("Weeks") + ylab("calls")
+```
+
+```{r}
+# Plot the gas data
+autoplot(gas)
+
+# Fit a TBATS model to the gas data
+fit <- tbats(gas)
+
+# Forecast the series for the next 5 years
+fc <- forecast(fit,h = 5*12)
+
+# Plot the forecasts
+autoplot(fc)
+
+# Record the Box-Cox parameter and the order of the Fourier terms
+lambda <- 0.082
+K <- 12.5
+```
+
+
+QUESTIONS:
+=================================================
+
+- How does the headcount turnover works? for example, if we have a pick at mid-day but no calls during the rest of the day is it required that we keep all individuals during that day?
+- Total calls are only calls answered? Are abandoned calls already included as total calls?
+- What is the difference between on_a_call_time and total call durations? Given that the first surpasses the first does it includes the call setup? [providing that the time count starts automatically]
+- How is it possible that the available time for each time signature is smaller than the active time?
+- Does the agent headcount feature represent the average headcount?
