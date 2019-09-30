@@ -23,6 +23,7 @@ library(reshape2)
 library(quantmod)
 library(TSA)
 library(tsoutliers)
+library(corrplot)
 ```
 
 ```{r data_import, message=FALSE, warning=FALSE, include=FALSE}
@@ -675,3 +676,195 @@ as.data.frame(xts_data) %>%
   annotate("text",x = 80000,y = 1,label = paste0("R^2 == ",summary(lm(agent_headcount ~ poly(total_calls_duration, 8, raw = TRUE), data = xts_data))$adj.r.squared), parse =TRUE)
 ```
 
+```{r}
+corr <- cor(xts_data) %>% corrplot::corrplot(method = "number", tl.srt=45)
+```
+
+```{r}
+# mat : is a matrix of data
+# ... : further arguments to pass to the native R cor.test function
+cor.mtest <- function(mat, ...) {
+    mat <- as.matrix(mat)
+    n <- ncol(mat)
+    p.mat<- matrix(NA, n, n)
+    diag(p.mat) <- 0
+    for (i in 1:(n - 1)) {
+        for (j in (i + 1):n) {
+            tmp <- cor.test(mat[, i], mat[, j], ...)
+            p.mat[i, j] <- p.mat[j, i] <- tmp$p.value
+        }
+    }
+  colnames(p.mat) <- rownames(p.mat) <- colnames(mat)
+  p.mat
+}
+# matrix of the p-value of the correlation
+p.mat <- cor.mtest(xts_data)
+
+corr <- cor(xts_data) %>% corrplot::corrplot(method = "number", tl.srt=45, p.mat = p.mat, sig.level = 0.05)
+```
+
+```{r}
+as.data.frame(xts_data) %>% 
+  filter(total_calls > as.numeric(quantile(total_calls,0.25)) -  1.5 * IQR(total_calls) & total_calls < as.numeric(quantile(total_calls,0.75)) +  1.5 * IQR(total_calls)) %>% 
+  ggplot(aes(x = total_calls , y = agent_headcount)) + 
+  geom_point() +
+  geom_smooth(formula = y ~ poly(x, 5, raw = TRUE),method = "lm") +
+  labs(title = "Total calls duration headcount relation") +
+
+  annotate("text",x = 700,y = 1,label = paste0("R^2 == ",summary(lm(agent_headcount ~  poly(total_calls, 5, raw = TRUE), data = xts_data))$adj.r.squared), parse =TRUE)
+```
+
+```{r}
+as.data.frame(xts_data) %>% 
+  filter(away_time > as.numeric(quantile(away_time,0.25)) -  1.5 * IQR(away_time) & away_time < as.numeric(quantile(away_time,0.75)) +  1.5 * IQR(away_time)) %>% 
+  ggplot(aes(x = away_time , y = agent_headcount)) + 
+  geom_point() +
+  geom_smooth(formula = y ~ poly(x, 5, raw = TRUE),method = "lm") +
+  labs(title = "Total calls duration headcount relation") +
+
+  annotate("text",x = 7000,y = 300,label = paste0("R^2 == ",summary(lm(agent_headcount ~  poly(away_time, 5, raw = TRUE), data = xts_data))$adj.r.squared), parse =TRUE)
+```
+
+```{r}
+as.data.frame(xts_data) %>% 
+  filter(busy_time > as.numeric(quantile(busy_time,0.25)) -  1.5 * IQR(busy_time) & busy_time < as.numeric(quantile(busy_time,0.75)) +  1.5 * IQR(busy_time)) %>% 
+  ggplot(aes(x = busy_time , y = agent_headcount)) + 
+  geom_point() +
+  geom_smooth(formula = y ~ poly(x, 5, raw = TRUE),method = "lm") +
+  labs(title = "Total calls duration headcount relation") +
+
+  annotate("text",x = 7000,y = 300,label = paste0("R^2 == ",summary(lm(agent_headcount ~  poly(busy_time, 5, raw = TRUE), data = xts_data))$adj.r.squared), parse =TRUE)
+```
+
+```{r}
+as.data.frame(xts_data) %>% 
+  filter(on_a_call_time > as.numeric(quantile(on_a_call_time,0.25)) -  1.5 * IQR(on_a_call_time) & on_a_call_time < as.numeric(quantile(on_a_call_time,0.75)) +  1.5 * IQR(on_a_call_time)) %>% 
+  ggplot(aes(x = on_a_call_time , y = agent_headcount)) + 
+  geom_point() +
+  geom_smooth(formula = y ~ poly(x, 5, raw = TRUE),method = "lm") +
+  labs(title = "Total calls duration headcount relation") +
+
+  annotate("text",x = 7000,y = 300,label = paste0("R^2 == ",summary(lm(agent_headcount ~  poly(on_a_call_time, 5, raw = TRUE), data = xts_data))$adj.r.squared), parse =TRUE)
+```
+
+```{r}
+as.data.frame(xts_data) %>% 
+  filter(total_handle_time > as.numeric(quantile(total_handle_time,0.25)) -  1.5 * IQR(total_handle_time) & total_handle_time < as.numeric(quantile(total_handle_time,0.75)) +  1.5 * IQR(total_handle_time)) %>% 
+  ggplot(aes(x = total_handle_time , y = agent_headcount)) + 
+  geom_point() +
+  geom_smooth(formula = y ~ poly(x, 5, raw = TRUE),method = "lm") +
+  labs(title = "Total calls duration headcount relation") +
+
+  annotate("text",x = 7000,y = 300,label = paste0("R^2 == ",summary(lm(agent_headcount ~  poly(total_handle_time, 5, raw = TRUE), data = xts_data))$adj.r.squared), parse =TRUE)
+```
+
+```{r echo=FALSE}
+
+set.seed(123)
+partition <- createDataPartition(xts_data$agent_headcount, p = 0.8, list = FALSE)
+
+train <- xts_data[partition,]
+test <- xts_data[-partition,]
+
+# test linear relationship
+trainControl <- trainControl(method = "repeatedcv", 
+                          number = 5,
+                          repeats = 5,
+                          verboseIter = TRUE)
+
+model <- caret::train(form = agent_headcount ~ total_calls + total_handle_time + away_time + busy_time, 
+                      data = train,
+                      method = "gbm",
+                      trControl = trainControl,
+                      metric = "RMSE",
+                      preProcess = c("center","scale"))
+
+fit <- predict(model, test)
+postResample(pred = fit,obs = test$agent_headcount)
+
+```
+
+
+```{r}
+calls <- tsclean(xts_data$total_calls)
+handle <- tsclean(xts_data$total_handle_time)
+t <- merge(calls,handle,join = "inner")
+
+as.data.frame(t) %>% 
+  ggplot(aes(x = total_calls , y = total_handle_time)) + 
+  geom_point() +
+
+  geom_smooth(formula = y ~ poly(x, 3, raw = TRUE),method = "lm") +
+  annotate("text",x = 800,y = 300,label = paste0("R^2 == ",summary(lm(total_handle_time ~  poly(total_calls,3,raw=TRUE), data = t))$adj.r.squared), parse =TRUE)
+```
+
+
+```{r}
+set.seed(123)
+partition <- createDataPartition(xts_data$agent_headcount, p = 0.8, list = FALSE)
+
+train <- xts_data[partition,]
+test <- xts_data[-partition,]
+
+# test linear relationship
+trainControl <- trainControl(method = "repeatedcv", 
+                          number = 5,
+                          repeats = 5,
+                          verboseIter = TRUE)
+
+model <- caret::train(form = total_handle_time ~ total_calls, 
+                      data = train,
+                      method = "gbm",
+                      trControl = trainControl,
+                      metric = "RMSE",
+                      preProcess = c("center","scale"))
+
+fit <- predict(model, test)
+postResample(pred = fit,obs = test$total_handle_time)
+```
+
+```{r}
+calls <- tsclean(xts_data$total_calls)
+away <- tsclean(xts_data$away_time)
+t <- merge(calls,away,join = "inner")
+
+t %>%  
+as.data.frame() %>% 
+  ggplot(aes(x = total_calls , y = away_time)) + 
+  geom_point() +
+  geom_smooth(formula = y ~ x ,method = "lm") +
+  annotate("text",x = 700,y = 300,label = paste0("R^2 == ",summary(lm(away_time ~  log(total_calls), data = xts_data))$adj.r.squared), parse =TRUE)
+```
+
+```{r}
+set.seed(123)
+partition <- createDataPartition(xts_data$agent_headcount, p = 0.8, list = FALSE)
+
+train <- xts_data[partition,]
+test <- xts_data[-partition,]
+
+# test linear relationship
+trainControl <- trainControl(method = "repeatedcv", 
+                          number = 5,
+                          repeats = 5,
+                          verboseIter = TRUE)
+
+model <- caret::train(form = away_time ~ total_calls, 
+                      data = train,
+                      method = "xgbLinear",
+                      trControl = trainControl,
+                      metric = "RMSE",
+                      preProcess = c("center","scale"))
+
+fit <- predict(model, test)
+postResample(pred = fit,obs = test$away_time)
+```
+
+```{r}
+plot(period.apply(xts_data[,"busy_time"]["2018-03-18/"],
+                  INDEX = endpoints(xts_data["2018-03-18/"],on="days") ,
+                  FUN = mean),
+     type = "l", 
+     xlab = "months", 
+     main = "Average daily busytime")
+```
